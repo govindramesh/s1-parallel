@@ -1,82 +1,23 @@
 # see https://github.com/simplescaling/s1
 
-# this is with budget forcing, we will be modifying
-
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 
-# Decide on a token limit for thinking; As the model's max tokens is 32768, 32000 usually ensures there is enough space for the model to still answer
 MAX_TOKENS_THINKING = 32000
-# Decide how often to ignore end-of-thinking token
-NUM_IGNORE = 1
 
-model = LLM(
-    "simplescaling/s1-32B", # s1 originally gets this prompt wrong but with budget forcing it fixes it
-    tensor_parallel_size=2,
-)
-tok = AutoTokenizer.from_pretrained(
-    "simplescaling/s1-32B"
-)
+class ReasoningModel:
+    def __init__(self, model_name: str = "simplescaling/s1-32B", tensor_parallel_size: int = 1):
+        self.model = LLM(model_name, tensor_parallel_size=tensor_parallel_size)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        # stop generating text after the end token or after a step of reasoning
+        self.stop_token_ids = self.tokenizer("<|im_end|>")["input_ids"] + self.tokenizer("\n\n")["input_ids"]
+        
+        self.sampling_params = SamplingParams(
+            max_tokens=MAX_TOKENS_THINKING,
+            min_tokens=0,
+            stop_token_ids=self.stop_token_ids,
+        )
 
-stop_token_ids = tok("<|im_end|>")["input_ids"]
-sampling_params = SamplingParams(
-    max_tokens=32768,
-    min_tokens=0,
-    stop_token_ids=stop_token_ids,
-    skip_special_tokens=False,
-    temperature=0.0,
-)
-
-# For the exact raspberry sample in the paper see
-prompts = [
-    "How many r in raspberry",
-]
-
-for i, p in enumerate(prompts):
-    prompt = "<|im_start|>system\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n<|im_start|>user\n" + p + "<|im_end|>\n<|im_start|>assistant\n"
-    stop_token_ids = tok("<|im_start|><|im_end|>")["input_ids"]
-    sampling_params = SamplingParams(
-        max_tokens=MAX_TOKENS_THINKING,
-        min_tokens=0,
-        stop_token_ids=stop_token_ids,
-        skip_special_tokens=False,
-        temperature=0.0,
-    )
-    prompt += "<|im_start|>think"
-    o = model.generate(
-        prompt,
-        sampling_params=sampling_params
-    )
-    ignore_str = "Wait"
-    max_tokens_thinking_tmp = MAX_TOKENS_THINKING
-    if max_tokens_thinking_tmp > 0:
-        for i in range(NUM_IGNORE): # Num of times to skip stop token
-            max_tokens_thinking_tmp -= len(o[0].outputs[0].token_ids)
-            prompt += o[0].outputs[0].text + ignore_str
-            sampling_params = SamplingParams(
-                max_tokens=max_tokens_thinking_tmp,
-                min_tokens=1,
-                stop_token_ids=stop_token_ids,
-                skip_special_tokens=False,
-                temperature=0.0,
-            )
-            o = model.generate(
-                prompt,
-                sampling_params=sampling_params
-            )
-    ### Final answer ###
-    prompt += o[0].outputs[0].text # You can also append "Final Answer:" here like we do for some evaluations to prevent the model from just continuing to reason in its answer when early exiting
-    stop_token_ids = tok("<|im_end|>")["input_ids"]
-    sampling_params = SamplingParams(
-        max_tokens=32768,
-        min_tokens=0,
-        stop_token_ids=stop_token_ids,
-        skip_special_tokens=False,
-        temperature=0.0,
-    )
-    o = model.generate(
-        prompt,
-        sampling_params=sampling_params,
-    )
-    print("With budget forcing:") # You will see that after the "Wait" in the reasoning trace it fixes its answer
-    print(prompt + o[0].outputs[0].text)
+    def generate_response(self, prompt: str) -> str:
+        output = self.model.generate(prompt, sampling_params=self.sampling_params)
+        return output[0].outputs[0].text.split("\n\n")[-1].strip()
