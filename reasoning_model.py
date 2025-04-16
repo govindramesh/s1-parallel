@@ -18,6 +18,25 @@ class ReasoningModel:
             stop_token_ids=self.stop_token_ids,
         )
 
+    def set_stop_tokens(self, stop_tokens: list[str]) -> None:
+        """
+        Set custom stop tokens for the model.
+        
+        Args:
+            stop_tokens: List of strings that will be used as stop tokens
+        """
+        stop_ids = []
+        for token in stop_tokens:
+            stop_ids.extend(self.tokenizer(token)["input_ids"])
+        self.stop_token_ids = stop_ids
+        
+        # Update sampling parameters with new stop tokens
+        self.sampling_params = SamplingParams(
+            max_tokens=MAX_TOKENS_THINKING,
+            min_tokens=0,
+            stop_token_ids=self.stop_token_ids,
+        )
+
     def generate_response(self, prompt: str, min_tokens=0) -> str:
         ignore_str = 'Wait'
         full_output = ''
