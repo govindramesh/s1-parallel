@@ -18,6 +18,18 @@ class ReasoningModel:
             stop_token_ids=self.stop_token_ids,
         )
 
-    def generate_response(self, prompt: str) -> str:
-        output = self.model.generate(prompt, sampling_params=self.sampling_params)
+    def generate_response(self, prompt: str, min_tokens=0) -> str:
+        ignore_str = 'Wait'
+        full_output = ''
+        num_output_tokens = 0
+        while True:
+            output = self.model.generate(prompt, sampling_params=self.sampling_params)
+            num_output_tokens += output.outputs[0].token_count
+            full_output += output[0].outputs[0].text
+
+            if num_output_tokens >= min_tokens:
+                break
+
+            prompt += output[0].outputs[0].text + ignore_str
+            
         return output[0].outputs[0].text.split("\n\n")[-1].strip()
