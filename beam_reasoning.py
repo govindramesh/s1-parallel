@@ -42,4 +42,4 @@ class BeamReasoning(ReasoningArchitecture):
         best_trace = max(beam, key=lambda x: x[0])[1]
         prompt = self._format_prompt(question, best_trace, final_answer=True)
         final_answer = self.reasoning_model.generate_response(prompt)
-        return final_answer
+        return final_answer, best_trace
