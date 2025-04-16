@@ -5,7 +5,7 @@ from reward_model import RewardModel
 
 MAX_REASONING_DEPTH = 5 
 INITIAL_IDEAS = 5
-BEAM_WIDTH = 5
+BEAM_WIDTH = 3
 
 class BeamReasoning:
     def __init__(self, idea_model: IdeaGenerator, reasoning_model: ReasoningModel, reward_model: RewardModel):
@@ -20,16 +20,21 @@ class BeamReasoning:
         heapq.heapify(beam)
 
         for depth in range(MAX_REASONING_DEPTH):
+            print(f"Depth {depth + 1}/{MAX_REASONING_DEPTH}")
             new_beam = []
-            for _, trace in heapq.nlargest(BEAM_WIDTH, beam):
+            for i, trace in enumerate(heapq.nlargest(BEAM_WIDTH, beam)):
+                print(f"Processing beam {i + 1}/{BEAM_WIDTH} with previous steps: {trace[1]}")
+                trace = trace[1]
                 new_ideas = self.idea_model.generate_ideas(question, trace, INITIAL_IDEAS)
                 for idea in new_ideas:
+                    print(f"Generating reasoning step for idea: {idea}")
                     reason_prompt = self._format_prompt(question, trace, idea)
                     reasoning_step = self.reasoning_model.generate_response(reason_prompt)
                     new_trace = trace + [reasoning_step]
  
                     #need to average or take last reward
                     reward = self.reward_model.evaluate_steps(question, new_trace)[-1]
+                    print(f"Reward for new trace: {reward}")
                     new_beam.append((reward, new_trace))
                 
             beam = heapq.nlargest(BEAM_WIDTH, new_beam, key=lambda x: x[0])

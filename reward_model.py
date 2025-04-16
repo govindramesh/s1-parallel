@@ -6,7 +6,7 @@ import json
 
 class RewardModel:
     def __init__(self, model_path: str = 'infly/Universal-PRM-7B', device_num: int = 0):
-        self.device = torch.device("cuda:{device_num}" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(f"cuda:{device_num}" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.model = AutoModel.from_pretrained(
             model_path,
@@ -35,7 +35,7 @@ class RewardModel:
                 answer_tokens += [self.tokenizer.eos_token_id]
                 QA_ids = query_id + answer_tokens
                 
-                input_ids = torch.tensor([QA_ids]).long().cuda().contiguous()
+                input_ids = torch.tensor([QA_ids]).long().cuda().contiguous().to(self.device)
                 outputs = self.model(input_ids=input_ids)
                 reward = torch.sigmoid(outputs[0]).cpu().item()
                 judge_list.append(reward)

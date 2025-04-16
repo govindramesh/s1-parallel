@@ -7,7 +7,7 @@ MAX_TOKENS_THINKING = 32000
 
 class ReasoningModel:
     def __init__(self, model_name: str = "simplescaling/s1-32B", tensor_parallel_size: int = 1):
-        self.model = LLM(model_name, tensor_parallel_size=tensor_parallel_size)
+        self.model = LLM(model_name, tensor_parallel_size=tensor_parallel_size, gpu_memory_utilization = 0.90)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # stop generating text after the end token or after a step of reasoning
         self.stop_token_ids = self.tokenizer("<|im_end|>")["input_ids"] + self.tokenizer("\n\n")["input_ids"]
