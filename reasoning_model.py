@@ -43,8 +43,8 @@ class ReasoningModel:
         num_output_tokens = 0
         while True:
             output = self.model.generate(prompt, sampling_params=self.sampling_params)
-            num_output_tokens += output.outputs[0].token_count
             full_output += output[0].outputs[0].text
+            num_output_tokens = len(self.tokenizer(full_output)["input_ids"])
 
             if num_output_tokens >= min_tokens:
                 break

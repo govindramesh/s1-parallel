@@ -26,7 +26,7 @@ class ReasoningArchitecture(ABC):
         Returns:
             str: A formatted prompt string for the reasoning model.
         """
-        context = "\n".join(f"Step {i+1}: {step}" for i, step in enumerate(trace)) if trace else None
+        context = "\n\n".join(trace) if trace else None
         
         prompt = (
             f"<|im_start|>system\n"
@@ -34,18 +34,19 @@ class ReasoningArchitecture(ABC):
             f"Your task is to reason through problems step by step to provide accurate and logical answers.\n"
             f"<|im_end|>\n"
             f"<|im_start|>user\n"
-            f"Problem: {question}\n"
+            f"{question}\n"
         )
-        
+
+        prompt += "<|im_end|>\n<|im_start|>assistant\n<think>\n"
+
         if context:
-            prompt += f"Context:\n{context}\n"
+            prompt += context
 
         if idea:
-            prompt += f"Idea for next reasoning step: {idea}\n"
-        
-        if final_answer:
-            prompt += "Final Answer:\n"
+            prompt += "\n\nNext, " + idea + "\n"
 
-        prompt += "<|im_end|>\n<|im_start|>assistant\n"
+        if final_answer:
+            prompt += "</think>\n\n"
+
         return prompt
     

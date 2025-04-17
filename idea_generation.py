@@ -45,19 +45,18 @@ class IdeaGenerator:
         return ideas[:num_ideas]
 
     def _format_idea_prompt(self, question: str, trace: str, num_ideas: int) -> str:
-        trace = 'Reasoning so far: ' + '\n\n'.join(trace) if trace else ''
-        return f"""
+        trace = 'Reasoning so far: ' + '\n'.join(trace) if trace else 'Reasoning so far: None'
+        return f"""You are an idea generator for logical, step-by-step problem-solving.
+
 Problem: {question}
 
 {trace}
 
-List {num_ideas} diverse, concrete ideas to explore next. Each should advance the reasoning in a different plausible direction.
 
-Output format:
-1. <idea one>
-2. <idea two>
-...
-"""
+Your task: provide {num_ideas} concrete ideas of what the next step should be. These ideas should advance any provided reasoning and aim to solve the problem.
+
+Output your ideas in a numbered list, without any additional text."""
+
 
     def _parse_ideas_list(self, text: str) -> list[str]:
         """
