@@ -21,7 +21,7 @@ class RewardModel:
         
         with torch.no_grad():
             for step_idx in range(1, len(trace) + 1):
-                responses = "\n\n".join(trace[:step_idx]) + "\n\n"
+                responses = ''.join(trace[:step_idx])
                 messages = [
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": question_wgt}

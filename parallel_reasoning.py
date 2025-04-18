@@ -21,7 +21,7 @@ class ParallelReasoning(ReasoningArchitecture):
         super().__init__()
 
         self.reasoning_model = reasoning_model
-        reasoning_model.set_stop_tokens(['<|im_end|>'])
+        reasoning_model.set_stop_conditions(stop_tokens=['<|im_end|>'], stop_strings=['<|im_start|>'])
         self.reward_model = reward_model
         self.num_branches = num_branches
         self.min_reasoning_tokens = min_reasoning_tokens

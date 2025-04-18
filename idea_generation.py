@@ -17,7 +17,7 @@ class IdeaGenerator:
             inputs["input_ids"],
             max_length=inputs["input_ids"].shape[1] + max_tokens,
             temperature=0.3,
-            do_sample=False
+            do_sample=True
         )
 
         first_response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
