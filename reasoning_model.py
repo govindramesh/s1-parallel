@@ -22,6 +22,8 @@ class ReasoningModel:
             skip_special_tokens=False,
         )
 
+        self.total_tokens = 0
+
     def set_stop_conditions(self, stop_tokens: list[str], stop_strings: list[str]) -> None:
         """
         Set custom stop tokens/strings for the model.
@@ -46,6 +48,9 @@ class ReasoningModel:
             include_stop_str_in_output=True,
             skip_special_tokens=False,
         )
+    
+    def get_total_tokens(self) -> int:
+        return self.total_tokens
 
     def generate_response(self, prompt: str, min_tokens=0) -> str:
         ignore_str = 'Wait'
@@ -60,6 +65,8 @@ class ReasoningModel:
                 break
 
             prompt += output[0].outputs[0].text + ignore_str
+
+        self.total_tokens += num_output_tokens
 
         print('\t\t' + repr(full_output))    
         return output[0].outputs[0].text
