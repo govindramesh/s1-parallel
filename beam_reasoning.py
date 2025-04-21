@@ -57,3 +57,6 @@ class BeamReasoning(ReasoningArchitecture):
         self.reasoning_model.set_stop_conditions(stop_tokens=["<|im_end|>"], stop_strings=[])
         final_answer = self.reasoning_model.generate_response(prompt)
         return final_answer, best_trace
+
+    def get_total_tokens(self):
+        return self.idea_model.get_total_tokens() + self.reasoning_model.get_total_tokens()

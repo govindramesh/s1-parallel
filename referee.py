@@ -13,8 +13,14 @@ class RefereeModel:
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         outputs = self.model.generate(inputs["input_ids"], max_length=50, temperature=0.3)
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return "correct" in response.lower()
     
+        match = re.search(r"\\boxed\{(correct|incorrect)\}", response)
+        if match:
+            verdict = match.group(1)
+            return verdict == "correct"
+        else:
+            raise ValueError("Referee model did not return a valid response.")
+
     def _format_referee_prompt(self, correct_answer: str, generated_answer: str) -> str:
         return (
             f"You are a referee for logical, step-by-step problem-solving.\n\n"

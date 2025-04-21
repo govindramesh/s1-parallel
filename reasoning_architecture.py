@@ -6,6 +6,10 @@ class ReasoningArchitecture(ABC):
     def solve(self, question: str) -> tuple[str, list[str]]:
         pass
 
+    @abstractmethod
+    def get_total_tokens(self) -> int:
+        pass
+
     def _format_prompt(
         self, 
         question: str, 
