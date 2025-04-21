@@ -1,4 +1,8 @@
 from datasets import load_dataset
+import random
+import argparse
+import re
+import pandas as pd
 
 from beam_reasoning import BeamReasoning
 from idea_generation import IdeaGenerator
@@ -6,9 +10,12 @@ from reasoning_architecture import ReasoningArchitecture
 from reasoning_model import ReasoningModel
 from reward_model import RewardModel
 from referee import RefereeModel
-import argparse
-import re
-import pandas as pd
+
+def format_mcq(question, answer_choices):
+    formatted_question = question + "\n"
+    for i, choice in enumerate(answer_choices):
+        formatted_question += f"{chr(65 + i)}. {choice}\n"
+    return formatted_question
 
 def extract_answer(final_answer):
     match = re.search(r"\\boxed{(.*?)}", final_answer)
@@ -17,28 +24,42 @@ def extract_answer(final_answer):
     return None
 
 def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
-    ds = load_dataset("hendrydong/gpqa_diamond")
+    ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
     print("Dataset successfully loaded")
     results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "correct"])
 
     iteration_count = 0
-    for row in ds['test']:
+    for row in ds['train']:
         if iteration_count >= 2:
             break
-        problem = row['problem']
-        print(f"Problem: {problem}")
-        solution = row['solution']
-        final_answer, best_trace = model.solve(problem)
+        problem = row['Question']
+        correct_answer = row['Correct Answer']
+        incorrect_answer_1 = row['Incorrect Answer 1']
+        incorrect_answer_2 = row['Incorrect Answer 2']
+        incorrect_answer_3 = row['Incorrect Answer 3']
+
+        answer_choices = [
+            correct_answer,
+            incorrect_answer_1,
+            incorrect_answer_2,
+            incorrect_answer_3
+        ]
+        random.shuffle(answer_choices)
+
+        formatted_question = format_mcq(problem, answer_choices)
+
+        solution = correct_answer
+        final_answer, best_trace = model.solve(formatted_question)
         answer = extract_answer(final_answer)
         correct = None
         try:
-            correct = referee.verify_answer(problem, solution, answer)
+            correct = referee.verify_answer(formatted_question, solution, answer)
         except ValueError as e:
             print(f"Error verifying answer: {e}")
             continue
 
         results_df = results_df.append({
-            "problem": problem,
+            "problem": formatted_question,
             "solution": solution,
             "final_answer": final_answer,
             "trace": best_trace,
@@ -77,4 +98,3 @@ if __name__ == "__main__":
     print(f"Total tokens used: {total_tokens}")
     results_df.to_csv("evaluation_results.csv", index=False)
     print("Evaluation results saved to evaluation_results.csv")
-
