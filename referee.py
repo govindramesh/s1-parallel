@@ -1,15 +1,19 @@
 import re
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from typing import Optional
+from transformers import AutoModelForCausalLM, PreTrainedModel, AutoTokenizer
 import torch
 
 class RefereeModel:
-    def __init__(self, model_name: str = "google/gemma-2-9b-it", device_num: int = 0):
+    def __init__(self, model: Optional[PreTrainedModel], model_name: str = "google/gemma-2-9b-it", device_num: int = 0):
         self.device = torch.device(f"cuda:{device_num}" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map=self.device, torch_dtype=torch.bfloat16)
+        if model:
+            self.model = model
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map=self.device, torch_dtype=torch.bfloat16)
     
-    def verify_answer(self, correct_answer: str, generated_answer: str) -> bool:
-        prompt = self._format_referee_prompt(correct_answer, generated_answer)
+    def verify_answer(self, question: str, correct_answer: str, generated_answer: str) -> bool:
+        prompt = self._format_referee_prompt(question, correct_answer, generated_answer)
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         outputs = self.model.generate(inputs["input_ids"], max_length=50, temperature=0.3)
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -21,11 +25,12 @@ class RefereeModel:
         else:
             raise ValueError("Referee model did not return a valid response.")
 
-    def _format_referee_prompt(self, correct_answer: str, generated_answer: str) -> str:
+    def _format_referee_prompt(self, question: str, correct_answer: str, generated_answer: str) -> str:
         return (
-            f"You are a referee for logical, step-by-step problem-solving.\n\n"
+            f"You are a referee for evaluating answers for correctness.\n\n"
+            f"Question: {question}\n\n"
             f"Correct Answer: {correct_answer}\n\n"
             f"Generated Answer: {generated_answer}\n\n"
-            f"Your task: Verify if the generated answer is correct. "
+            f"Your task: Verify if the generated answer and correct answer are logically equivalent with respect to the question."
             "Think step-by-step and provide a final verdict: \\boxed{correct} or \\boxed{incorrect}.\n\n"
         )
