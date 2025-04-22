@@ -25,7 +25,7 @@ def extract_answer(final_answer):
 
 def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
-    print("Dataset successfully loaded")
+    print("GPQA Dataset successfully loaded")
     results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "correct"])
 
     for row in ds['train']:
@@ -67,6 +67,41 @@ def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
     total_tokens = model.get_total_tokens()
 
     return results_df, total_tokens
+
+def eval_aime_2024(model: ReasoningArchitecture, referee: RefereeModel):
+    ds = load_dataset("Maxwell-Jia/AIME_2024")
+    print("AIME Dataset successfully loaded")
+
+    results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "correct"])
+
+    for row in ds['train']:
+        problem = row['Problem']
+        final_answer, best_trace = model.solve(problem)
+        model_answer = extract_answer(final_answer)
+        model_answer_num = None
+        correct = None
+
+        try:
+            model_answer_num = int(model_answer)
+        except ValueError:
+            print(f"Error converting answer to int: {model_answer}")
+
+        correct_answer = int(row['Answer'])
+        if model_answer_num == correct_answer:
+            correct = True
+        else:
+            correct = False
+
+        results_df = results_df.append({
+            "problem": problem,
+            "solution": correct_answer,
+            "final_answer": model_answer,
+            "trace": best_trace,
+            "correct": correct
+        }, ignore_index=True)
+
+        total_tokens = model.get_total_tokens()
+        return results_df, total_tokens
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluation script")
