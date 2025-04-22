@@ -24,6 +24,7 @@ class BeamReasoning(ReasoningArchitecture):
         initial_reward = 0.0
         beam = [(initial_reward, [])]
         heapq.heapify(beam)
+        self.reasoning_model.set_stop_conditions(stop_tokens=["<|im_start|><|im_end|>"], stop_strings=["\n\n", "<|im_start|>"])
 
         for depth in range(self.max_reasoning_depth):
             print(f"*** REASONING DEPTH {depth + 1}/{self.max_reasoning_depth} ***")

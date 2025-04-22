@@ -28,11 +28,9 @@ def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
     print("Dataset successfully loaded")
     results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "correct"])
 
-    iteration_count = 0
     for row in ds['train']:
-        if iteration_count >= 2:
-            break
         problem = row['Question']
+        print(f"Problem: {problem}")
         correct_answer = row['Correct Answer']
         incorrect_answer_1 = row['Incorrect Answer 1']
         incorrect_answer_2 = row['Incorrect Answer 2']
@@ -58,15 +56,13 @@ def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
             print(f"Error verifying answer: {e}")
             continue
 
-        results_df = results_df.append({
+        results_df = pd.concat([results_df, pd.DataFrame([{
             "problem": formatted_question,
             "solution": solution,
             "final_answer": final_answer,
             "trace": best_trace,
             "correct": correct
-        }, ignore_index=True)
-        
-        iteration_count += 1
+        }])], ignore_index=True)
 
     total_tokens = model.get_total_tokens()
 

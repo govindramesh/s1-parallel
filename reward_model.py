@@ -73,7 +73,7 @@ class RewardModel:
             step_reward = self._make_step_rewards(outputs[0], token_masks)
             return step_reward[0]
         
-    def _make_step_rewards(logits, token_masks):
+    def _make_step_rewards(self, logits, token_masks):
         probabilities = F.softmax(logits, dim=-1)
         probabilities = probabilities * token_masks.unsqueeze(-1) # bs, seq_len, num_labels
         

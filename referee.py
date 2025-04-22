@@ -15,7 +15,7 @@ class RefereeModel:
     def verify_answer(self, question: str, correct_answer: str, generated_answer: str) -> bool:
         prompt = self._format_referee_prompt(question, correct_answer, generated_answer)
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-        outputs = self.model.generate(inputs["input_ids"], max_length=50, temperature=0.3)
+        outputs = self.model.generate(inputs["input_ids"], temperature=0.3, do_sample=True, max_new_tokens=200)
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
     
         match = re.search(r"\\boxed\{(correct|incorrect)\}", response)
