@@ -54,7 +54,6 @@ def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
             correct = referee.verify_answer(formatted_question, solution, answer)
         except ValueError as e:
             print(f"Error verifying answer: {e}")
-            continue
 
         results_df = pd.concat([results_df, pd.DataFrame([{
             "problem": formatted_question,
