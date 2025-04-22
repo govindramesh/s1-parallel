@@ -26,7 +26,7 @@ def extract_answer(final_answer):
 def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
     print("GPQA Dataset successfully loaded")
-    results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "correct"])
+    results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "trace", "correct"])
 
     for row in ds['train']:
         problem = row['Question']
@@ -62,7 +62,7 @@ def eval_gpqa(model: ReasoningArchitecture, referee: RefereeModel):
             "trace": best_trace,
             "correct": correct
         }])], ignore_index=True)
-
+        
     total_tokens = model.get_total_tokens()
 
     return results_df, total_tokens
@@ -71,7 +71,7 @@ def eval_aime_2024(model: ReasoningArchitecture, referee: RefereeModel):
     ds = load_dataset("Maxwell-Jia/AIME_2024")
     print("AIME Dataset successfully loaded")
 
-    results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "correct"])
+    results_df = pd.DataFrame(columns=["problem", "solution", "final_answer", "trace", "correct"])
 
     for row in ds['train']:
         problem = row['Problem']
@@ -91,40 +91,49 @@ def eval_aime_2024(model: ReasoningArchitecture, referee: RefereeModel):
         else:
             correct = False
 
-        results_df = results_df.append({
+        results_df = pd.concat([results_df, pd.DataFrame([{
             "problem": problem,
             "solution": correct_answer,
-            "final_answer": model_answer,
+            "final_answer": final_answer,
             "trace": best_trace,
             "correct": correct
-        }, ignore_index=True)
+        }])], ignore_index=True)
 
         total_tokens = model.get_total_tokens()
         return results_df, total_tokens
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluation script")
-    parser.add_argument("--max_depth", type=int, default=10, help="Maximum depth for reasoning")
-    parser.add_argument("--beam_width", type=int, default=3, help="Beam width for reasoning")
-    args = parser.parse_known_args()
+    parser.add_argument("--max_depth", type=int, default=5, help="Maximum depth for reasoning")
+    parser.add_argument("--beam_width", type=int, default=2, help="Beam width for reasoning")
+    parser.add_argument("--ideas", type=int, default=2, help="Number of ideas to generate at each step")
+    parser.add_argument("--dataset", type=str, default="gpqa", choices=["gpqa", "aime"], help="Dataset to evaluate on")
+    args = parser.parse_args()
 
-    idea_model = IdeaGenerator(device_num = 4)
+    print(args)
+
     reasoning_model = ReasoningModel(tensor_parallel_size = 4)
-    reward_model = RewardModel(device_num=5)
+    idea_model = IdeaGenerator(device_num = 4)
+    reward_model = RewardModel(device_num=5) #model_path='infly/Universal-PRM-7B', 
 
     beam_reasoning = BeamReasoning(
         idea_model=idea_model,
         reasoning_model=reasoning_model,
         reward_model=reward_model,
         max_reasoning_depth=args.max_depth,
-        initial_ideas=3,
+        initial_ideas=args.ideas,
         beam_width=args.beam_width
     )
 
-    referee = RefereeModel()
+    referee = RefereeModel(model=idea_model.model, device_num=4)
 
-    results_df, total_tokens = eval_gpqa(beam_reasoning, referee)
+    if args.dataset == "aime":
+        print("Evaluating on AIME dataset")
+        results_df, total_tokens = eval_aime_2024(beam_reasoning, referee)
+    else:
+        print("Evaluating on GPQA dataset")
+        results_df, total_tokens = eval_gpqa(beam_reasoning, referee)
 
     print(f"Total tokens used: {total_tokens}")
-    results_df.to_csv("evaluation_results.csv", index=False)
-    print("Evaluation results saved to evaluation_results.csv")
+    results_df.to_csv(f"eval_results_{args.dataset}_{args.max_depth}_{args.beam_width}_{args.ideas}_{total_tokens}.csv", index=False)
+    print("Evaluation results saved to file")
