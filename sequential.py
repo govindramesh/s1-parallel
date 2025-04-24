@@ -8,7 +8,6 @@ class SequentialReasoning(ReasoningArchitecture):
 
         Args:
             reasoning_model (ReasoningModel): The model used for reasoning.
-            reward_model (RewardModel): The model used for evaluating reasoning steps.
         """
         super().__init__()
         self.reasoning_model = reasoning_model

@@ -36,6 +36,7 @@ class ReasoningArchitecture(ABC):
             f"<|im_start|>system\n"
             f"You are Qwen, created by Alibaba Cloud. You are a helpful assistant. "
             f"Your task is to reason through problems step by step to provide accurate and logical answers."
+            f"Only provide the letter for your final answer, not the full answer. Either A, B, C, or D.\n"
             f"<|im_end|>\n"
             f"<|im_start|>user\n"
             f"{question}"
