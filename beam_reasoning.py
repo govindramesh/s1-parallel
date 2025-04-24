@@ -29,14 +29,14 @@ class BeamReasoning(ReasoningArchitecture):
         for depth in range(self.max_reasoning_depth):
             print(f"*** REASONING DEPTH {depth + 1}/{self.max_reasoning_depth} ***")
             new_beam = []
-            for i, trace in enumerate(heapq.nlargest(self.beam_width, beam)):
+            for i, item in enumerate(heapq.nlargest(self.beam_width, beam)):
                 #check if reasoning is finished for this beam
-                if len(trace[1]) > 0 and (trace[1][-1].endswith("<|im_start|>") or trace[1][-1].endswith("<|im_end|>")):
+                if len(item[1]) > 0 and (item[1][-1].endswith("<|im_start|>") or item[1][-1].endswith("<|im_end|>")):
                     print(f"Beam {i + 1}/{self.beam_width} already has a final answer. Skipping...")
-                    new_beam.append(trace)
+                    new_beam.append(item)
                     continue
                 
-                trace = trace[1] # Extract the trace from the tuple (reward, trace)
+                trace = item[1] # Extract the trace from the tuple (reward, trace)
                 print(f"\nProcessing beam {i + 1}/{self.beam_width} with previous steps: {trace}")
                 new_ideas = self.idea_model.generate_ideas(question, trace, self.initial_ideas)
                 for j, idea in enumerate(new_ideas):
@@ -47,6 +47,9 @@ class BeamReasoning(ReasoningArchitecture):
  
                     #need to average or take last reward
                     reward = self.reward_model.evaluate_steps(question, new_trace)[-1]
+                    # If the reward is negative, there was an error in scoring; use previous reward
+                    reward = item[0] if reward < 0 else reward
+                        
                     print(f"\tReward for new idea: {reward}\n")
                     new_beam.append((reward, new_trace))
                 

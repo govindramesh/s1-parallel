@@ -32,5 +32,5 @@ class RefereeModel:
             f"Correct Answer: {correct_answer}\n\n"
             f"Generated Answer: {generated_answer}\n\n"
             f"Your task: Verify if the generated answer and correct answer are logically equivalent with respect to the question."
-            "Think step-by-step and provide a final verdict: \\boxed{correct} or \\boxed{incorrect}.\n\n"
+            "Briefly think step-by-step and provide a final verdict: \\boxed{correct} or \\boxed{incorrect}.\n\n"
         )

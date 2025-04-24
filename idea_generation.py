@@ -19,7 +19,7 @@ class IdeaGenerator:
         inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True).to(self.device)
         outputs = self.model.generate(
             inputs["input_ids"],
-            max_length=inputs["input_ids"].shape[1] + max_tokens,
+            max_new_tokens=max_tokens,
             temperature=0.3,
             do_sample=True
         )
@@ -33,13 +33,16 @@ class IdeaGenerator:
         if len(ideas) < num_ideas:
             print(f"Only {len(ideas)} ideas generated. Falling back to higher temperature...")
 
+            prompt = self._format_idea_prompt(question, trace, 1)
+            inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True).to(self.device)
+
             fallback_outputs = self.model.generate(
                 inputs["input_ids"],
-                max_length=inputs["input_ids"].shape[1] + max_tokens,
+                max_new_tokens=max_tokens,
                 temperature=fallback_temp,
                 do_sample=True,
                 top_p=0.95,
-                num_return_sequences=2
+                num_return_sequences=num_ideas
             )
 
             for output in fallback_outputs:
@@ -48,6 +51,9 @@ class IdeaGenerator:
 
             # Deduplicate and truncate
             ideas = list(dict.fromkeys(ideas))  # Preserves order
+
+        for i in range(num_ideas - len(ideas)):
+            ideas.append('')
 
         return ideas[:num_ideas]
 
@@ -72,5 +78,7 @@ class IdeaGenerator:
         for line in lines:
             match = re.match(r"\s*\d+\.\s*(.*)", line)
             if match:
-                ideas.append(match.group(1).strip())
+                idea = match.group(1).strip()
+                if len(idea) >= 5:
+                    ideas.append(idea)
         return ideas
